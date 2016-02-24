@@ -1,10 +1,9 @@
 #Region ;**** Directives created by AutoIt3Wrapper_GUI ****
 #AutoIt3Wrapper_Icon=Imgs\Icon.ico
 #AutoIt3Wrapper_Compression=0
-#AutoIt3Wrapper_Res_Fileversion=1.0.0.0
+#AutoIt3Wrapper_Res_Fileversion=2.1.0.0
 #AutoIt3Wrapper_Res_LegalCopyright=R.S.S.
 #AutoIt3Wrapper_Res_requestedExecutionLevel=asInvoker
-#AutoIt3Wrapper_Add_Constants=n
 #EndRegion ;**** Directives created by AutoIt3Wrapper_GUI ****
 
 #include <GUIConstantsEx.au3>
@@ -17,6 +16,7 @@
 #include <StaticConstants.au3>
 #include <Timers.au3>
 #include <TrayConstants.au3>
+#include <ButtonConstants.au3>
 
 
 
@@ -34,7 +34,8 @@ Global $CurrentGui, $AZTreeView, $InputMovieDescription = 0, $InputMovieGenre = 
 Global $MainGui, $CurrentListSelection, $OldListSelection, $Msg, $StartTimer, $DefaultButton, $CurrentMovieDescription, $CurrentMovieGenre, $CurrentMovieWatchCount
 Global $CurrentMovieTitle, $MovieDataGui, $GenericPicture, $MoviePicture, $CheckPicture, $CurrentMoviePictureCheck, $DisplayMovieTitle, $CheckFavorite
 Global $FavoritesList, $CurrentMovieFavoriteCheck, $NumberList, $CurrentMovieGenreDisplay, $CurrentMovieTitleDisplay, $CurrentMovieDescriptionDisplay
-Global $CurrentMovieFavoriteDisplay, $CurrentMoviePictureDisplay, $EditButton, $SaveButton, $TrimTitleForSelection
+Global $CurrentMovieFavoriteDisplay, $CurrentMoviePictureDisplay, $EditButton, $SaveButton, $TrimTitleForSelection, $MovieButton
+Global $MoviePictureYesRadio, $MoviePictureNoRadio, $MovieFavoriteYesRadio, $MovieFavoriteNoRadio, $EditMoviePicture = "0", $EditMovieFavorite = "0"
 
 Dim $Alphabet[27] = [26, "A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M", "N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"]
 Dim $AZList[27]
@@ -59,6 +60,11 @@ Func _ReCreateMainGui()
 
 	$MainGui = GUICreate("Movie Database - RSSoftware", 800, 600)
 	GUISetOnEvent($GUI_EVENT_CLOSE, "_Exit")
+
+	GUICtrlCreateLabel("© RS Software", 730, 575, 200)
+	GUICtrlSetFont(-1, 8)
+	GUICtrlCreateLabel("Version 2.1", 738, 585, 200)
+	GUICtrlSetFont(-1, 8)
 
 
 
@@ -86,6 +92,7 @@ Func _ReCreateMainGui()
 	GUICtrlSetFont(-1, 16)
 
 	$GenericPicture = GUICtrlCreatePic(@ScriptDir & "/Imgs/DefaultImg.jpg", 385, 160, 250, 300)
+	$MoviePicture = GUICtrlCreatePic(@ScriptDir & "/Imgs/DefaultImg.jpg", 385, 160, 250, 300)
 
 	$DefaultButton = GUICtrlCreateButton("Movie Information", 360, 500, 300, 80)
 	GUICtrlSetOnEvent(-1, "_DefaultButton")
@@ -98,11 +105,16 @@ Func _ReCreateMainGui()
 	GUICtrlSetFont(-1, 22)
 	GUICtrlSetColor(-1, 0x00CCFF)
 
-
 	GUISetState(@SW_SHOW)
 
 
+
 EndFunc   ;==>_ReCreateMainGui
+
+
+Func _DefaultButton()
+	MsgBox(0, "Hello!", "Please select a movie to see the movie information! Or add a movie if you haven't yet!")
+EndFunc   ;==>_DefaultButton
 
 Func _GetMovieData()
 	$GetTitleLength = StringLen($CurrentListSelection)
@@ -119,14 +131,21 @@ Func _GetMovieData()
 	$CurrentMoviePictureCheck = $MovieData[3][1]
 	$CurrentMovieFavoriteCheck = $MovieData[4][1]
 	If $MovieData[3][1] = 1 Then
-		GUICtrlSetState($GenericPicture, $GUI_HIDE)
-		GUICtrlDelete($MoviePicture)
-		$MoviePicture = GUICtrlCreatePic(@ScriptDir & "/Imgs/" & $CurrentListSelection & ".jpg", 385, 160, 250, 300)
+		If FileExists(@ScriptDir & "/Imgs/" & $CurrentListSelection & ".jpg") Then
+			GUICtrlDelete($MoviePicture)
+			GUICtrlSetState($GenericPicture, $GUI_HIDE)
+			$MoviePicture = GUICtrlCreatePic(@ScriptDir & "/Imgs/" & $CurrentListSelection & ".jpg", 385, 160, 250, 300)
+			GUICtrlSetState($MoviePicture, $GUI_SHOW)
+		Else
+			GUICtrlSetState($MoviePicture, $GUI_HIDE)
+			GUICtrlSetState($GenericPicture, $GUI_SHOW)
+		EndIf
 	Else
 		GUICtrlSetState($MoviePicture, $GUI_HIDE)
 		GUICtrlSetState($GenericPicture, $GUI_SHOW)
 	EndIf
 	GUICtrlDelete($DefaultButton)
+	GUICtrlDelete($MovieButton)
 
 	$MovieButton = GUICtrlCreateButton("Movie Information", 360, 500, 300, 80)
 	GUICtrlSetOnEvent(-1, "_ReadMovieData")
@@ -155,13 +174,28 @@ Func _ReadMovieData()
 	GUICtrlSetFont(-1, 12)
 	GUICtrlSetColor(-1, 0x00CCFF)
 
+
+
 	GUICtrlCreateLabel("Movie Picture", 140, 170, 200)
 	GUICtrlSetFont(-1, 16)
 	GUICtrlSetColor(-1, 0xFFFFFF)
+	GUIStartGroup()
+	$MoviePictureYesRadio = GUICtrlCreateRadio("Yes", 145, 210, 60, 20, $BS_Center)
+	GUICtrlSetFont(-1, 14)
+	GUICtrlSetState($MoviePictureYesRadio, $GUI_HIDE)
+	GUICtrlSetOnEvent(-1, "_YesPicture")
+	$MoviePictureNoRadio = GUICtrlCreateRadio("No", 215, 210, 60, 20, $BS_Center)
+	GUICtrlSetFont(-1, 14)
+	GUICtrlSetState($MoviePictureNoRadio, $GUI_HIDE)
+	GUICtrlSetOnEvent(-1, "_NoPicture")
 	If $CurrentMoviePictureCheck = 1 Then
 		$DisplayPicture = "Yes"
+		$EditMoviePicture = "1"
+		GUICtrlSetState($MoviePictureYesRadio, $GUI_CHECKED)
 	Else
 		$DisplayPicture = "No"
+		$EditMoviePicture = "0"
+		GUICtrlSetState($MoviePictureNoRadio, $GUI_CHECKED)
 	EndIf
 	$CurrentMoviePictureDisplay = GUICtrlCreateInput($DisplayPicture, 10, 200, 380, 30, BitOR($ES_Center, $ES_ReadOnly))
 	GUICtrlSetFont(-1, 12)
@@ -170,10 +204,23 @@ Func _ReadMovieData()
 	GUICtrlCreateLabel("Movie Favorited", 125, 250, 200)
 	GUICtrlSetFont(-1, 16)
 	GUICtrlSetColor(-1, 0xFFFFFF)
+	GUIStartGroup()
+	$MovieFavoriteYesRadio = GUICtrlCreateRadio("Yes", 145, 290, 60, 20, $BS_Center)
+	GUICtrlSetFont(-1, 14)
+	GUICtrlSetState($MovieFavoriteYesRadio, $GUI_HIDE)
+	GUICtrlSetOnEvent(-1, "_YesFavorite")
+	$MovieFavoriteNoRadio = GUICtrlCreateRadio("No", 215, 290, 60, 20, $BS_Center)
+	GUICtrlSetFont(-1, 14)
+	GUICtrlSetState($MovieFavoriteNoRadio, $GUI_HIDE)
+	GUICtrlSetOnEvent(-1, "_NoFavorite")
 	If $CurrentMovieFavoriteCheck = 1 Then
+		$EditMovieFavorite = "1"
 		$DisplayFavorite = "Yes"
+		GUICtrlSetState($MovieFavoriteYesRadio, $GUI_CHECKED)
 	Else
 		$DisplayFavorite = "No"
+		$EditMovieFavorite = "0"
+		GUICtrlSetState($MovieFavoriteNoRadio, $GUI_CHECKED)
 	EndIf
 	$CurrentMovieFavoriteDisplay = GUICtrlCreateInput($DisplayFavorite, 10, 280, 380, 30, BitOR($ES_Center, $ES_ReadOnly))
 	GUICtrlSetFont(-1, 12)
@@ -202,10 +249,41 @@ Func _ReadMovieData()
 	GUISetState()
 EndFunc   ;==>_ReadMovieData
 
+Func _YesPicture()
+	$EditMoviePicture = "1"
+EndFunc   ;==>_YesPicture
+
+Func _NoPicture()
+	$EditMoviePicture = "0"
+EndFunc   ;==>_NoPicture
+
+Func _YesFavorite()
+	$EditMovieFavorite = "1"
+EndFunc   ;==>_YesFavorite
+
+Func _NoFavorite()
+	$EditMovieFavorite = "0"
+EndFunc   ;==>_NoFavorite
+
+Func _EditMovie()
+	GUICtrlSetState($EditButton, $GUI_HIDE)
+	GUICtrlSetState($SaveButton, $GUI_SHOW)
+	GUICtrlSetStyle($CurrentMovieGenreDisplay, $GUI_SS_DEFAULT_INPUT)
+	GUICtrlSetStyle($CurrentMovieGenreDisplay, $ES_CENTER)
+	GUICtrlSetColor($CurrentMovieGenreDisplay, 0xfb0000)
+	GUICtrlSetStyle($CurrentMovieDescriptionDisplay, $GUI_SS_DEFAULT_INPUT)
+	GUICtrlSetStyle($CurrentMovieDescriptionDisplay, $ES_CENTER)
+	GUICtrlSetColor($CurrentMovieDescriptionDisplay, 0xfb0000)
+	GUICtrlSetState($CurrentMoviePictureDisplay, $GUI_HIDE)
+	GUICtrlSetState($CurrentMovieFavoriteDisplay, $GUI_HIDE)
+	GUICtrlSetState($MoviePictureYesRadio, $GUI_SHOW)
+	GUICtrlSetState($MoviePictureNoRadio, $GUI_SHOW)
+	GUICtrlSetState($MovieFavoriteYesRadio, $GUI_SHOW)
+	GUICtrlSetState($MovieFavoriteNoRadio, $GUI_SHOW)
+EndFunc   ;==>_EditMovie
+
 Func _SaveMovie()
 	$EditMovieGenre = GUICtrlRead($CurrentMovieGenreDisplay)
-	$EditMoviePicture = GUICtrlRead($CurrentMoviePictureDisplay)
-	$EditMovieFavorite = GUICtrlRead($CurrentMovieFavoriteDisplay)
 	$EditMovieDescription = GUICtrlRead($CurrentMovieDescriptionDisplay)
 	If StringIsDigit($TrimTitleForSelection) Then
 		IniWrite(@ScriptDir & "/Data/# List/" & $CurrentMovieTitle & ".ini", $CurrentMovieTitle, "Genre", $EditMovieGenre)
@@ -240,163 +318,144 @@ Func _SaveMovie()
 
 EndFunc   ;==>_SaveMovie
 
-Func _EditMovie()
-	GUICtrlSetState($EditButton, $GUI_HIDE)
-	GUICtrlSetState($SaveButton, $GUI_SHOW)
-	MsgBox(0, "Note", "For the sections 'Movie Picture' and 'Movie Favorited' put a 0 for no and a 1 for yes!")
-	GUICtrlSetStyle($CurrentMovieGenreDisplay, $GUI_SS_DEFAULT_INPUT)
-	GUICtrlSetStyle($CurrentMovieGenreDisplay, $ES_CENTER)
-	GuiCtrlSetColor($CurrentMovieGenreDisplay, 0xfb0000)
-	GUICtrlSetStyle($CurrentMoviePictureDisplay, $GUI_SS_DEFAULT_INPUT)
-	GUICtrlSetStyle($CurrentMoviePictureDisplay, $ES_CENTER)
-	GuiCtrlSetColor($CurrentMoviePictureDisplay, 0xfb0000)
-	GUICtrlSetStyle($CurrentMovieFavoriteDisplay, $GUI_SS_DEFAULT_INPUT)
-	GUICtrlSetStyle($CurrentMovieFavoriteDisplay, $ES_CENTER)
-	GuiCtrlSetColor($CurrentMovieFavoriteDisplay, 0xfb0000)
-	GUICtrlSetStyle($CurrentMovieDescriptionDisplay, $GUI_SS_DEFAULT_INPUT)
-	GUICtrlSetStyle($CurrentMovieDescriptionDisplay, $ES_CENTER)
-	GuiCtrlSetColor($CurrentMovieDescriptionDisplay, 0xfb0000)
-EndFunc   ;==>_EditMovie
-
-
-
-
-
-Func _DefaultButton()
-	MsgBox(0, "Hello!", "Please select a movie to see the movie information! Or add a movie if you haven't yet!")
-EndFunc   ;==>_DefaultButton
-
 
 Func _AddMovie()
+	GUISetState(@SW_DISABLE, $MainGui)
+	$CurrentGui = "MovieDataGui"
+	$MovieDataGui = GUICreate("Add NewMovie", 400, 520)
 
-	While $InputMovieTitle = ""
-		$InputMovieTitle = InputBox("Movie Title", "Please input the title of the movie you wish to add.")
-		If $InputMovieTitle = "" Then
-			MsgBox(48, "Cancelled", "You have not input a movie title, cancelling addition of movie!")
-			$InputMovieTitle = "Cancel Movie RS"
-			$Stop = 1
-		EndIf
+	GUICtrlCreateLabel("Movie Title", 150, 10, 200)
+	GUICtrlSetFont(-1, 16)
+	GUICtrlSetColor(-1, 0xFFFFFF)
+	$CurrentMovieTitleDisplay = GUICtrlCreateInput("", 10, 40, 380, 30, $ES_CENTER)
+	GUICtrlSetFont(-1, 12)
+	GUICtrlSetColor(-1, 0x00CCFF)
+	GUICtrlSetColor($CurrentMovieTitleDisplay, 0xfb0000)
 
-		If $Stop = 0 Then
-			$CheckMovieAddition = MsgBox(4, "Movie Title", "Is this the movie title you wish to use?" & @CRLF & @CRLF & $InputMovieTitle)
+	GUICtrlCreateLabel("Movie Genre", 140, 90, 200)
+	GUICtrlSetFont(-1, 16)
+	GUICtrlSetColor(-1, 0xFFFFFF)
+	$CurrentMovieGenreDisplay = GUICtrlCreateInput("", 10, 120, 380, 30, $ES_Center)
+	GUICtrlSetFont(-1, 12)
+	GUICtrlSetColor(-1, 0x00CCFF)
+	GUICtrlSetColor($CurrentMovieGenreDisplay, 0xfb0000)
 
-			If $CheckMovieAddition = 6 Then
-				Sleep(10)
-			Else
-				$InputMovieTitle = ""
-			EndIf
-		EndIf
-	WEnd
 
-	If $Stop = 0 Then
-		While $InputMovieGenre = ""
-			$InputMovieGenre = InputBox("Movie Genre", "Please input the genre of the movie you wish to add.")
-			If $InputMovieGenre = "" Then
-				MsgBox(48, "Cancelled", "You have not input a movie genre, cancelling addition of movie!")
-				$InputMovieGenre = "Cancel Movie RS"
-				$Stop = 1
-			EndIf
 
-			If $Stop = 0 Then
-				$CheckMovieAddition = MsgBox(4, "Movie Genre", "Is this the movie genre you wish to use?" & @CRLF & @CRLF & $InputMovieGenre)
-
-				If $CheckMovieAddition = 6 Then
-					Sleep(10)
-				Else
-					$InputMovieGenre = ""
-				EndIf
-			EndIf
-		WEnd
+	GUICtrlCreateLabel("Movie Picture", 140, 170, 200)
+	GUICtrlSetFont(-1, 16)
+	GUICtrlSetColor(-1, 0xFFFFFF)
+	GUIStartGroup()
+	$MoviePictureYesRadio = GUICtrlCreateRadio("Yes", 145, 210, 60, 20, $BS_Center)
+	GUICtrlSetFont(-1, 14)
+	GUICtrlSetOnEvent(-1, "_YesPicture")
+	$MoviePictureNoRadio = GUICtrlCreateRadio("No", 215, 210, 60, 20, $BS_Center)
+	GUICtrlSetFont(-1, 14)
+	GUICtrlSetOnEvent(-1, "_NoPicture")
+	If $CurrentMoviePictureCheck = 1 Then
+		$DisplayPicture = "Yes"
+		$EditMoviePicture = "1"
+		GUICtrlSetState($MoviePictureYesRadio, $GUI_CHECKED)
+	Else
+		$DisplayPicture = "No"
+		$EditMoviePicture = "0"
+		GUICtrlSetState($MoviePictureNoRadio, $GUI_CHECKED)
 	EndIf
 
-	If $Stop = 0 Then
-		While $InputMovieDescription = ""
-			$InputMovieDescription = InputBox("Movie Description", "Please input a movie description of the movie you wish to add.")
-			If $InputMovieDescription = "" Then
-				MsgBox(48, "Cancelled", "You have not input a movie description, cancelling addition of movie!")
-				$InputMovieDescription = "Cancel Movie RS"
-				$Stop = 1
-			EndIf
-
-			If $Stop = 0 Then
-				$CheckMovieAddition = MsgBox(4, "Movie Description", "Is this the movie description you wish to use?" & @CRLF & @CRLF & $InputMovieDescription)
-
-				If $CheckMovieAddition = 6 Then
-					Sleep(10)
-				Else
-					$InputMovieDescription = ""
-				EndIf
-			EndIf
-		WEnd
+	GUICtrlCreateLabel("Movie Favorited", 125, 250, 200)
+	GUICtrlSetFont(-1, 16)
+	GUICtrlSetColor(-1, 0xFFFFFF)
+	GUIStartGroup()
+	$MovieFavoriteYesRadio = GUICtrlCreateRadio("Yes", 145, 290, 60, 20, $BS_Center)
+	GUICtrlSetFont(-1, 14)
+	GUICtrlSetOnEvent(-1, "_YesFavorite")
+	$MovieFavoriteNoRadio = GUICtrlCreateRadio("No", 215, 290, 60, 20, $BS_Center)
+	GUICtrlSetFont(-1, 14)
+	GUICtrlSetOnEvent(-1, "_NoFavorite")
+	If $CurrentMovieFavoriteCheck = 1 Then
+		$EditMovieFavorite = "1"
+		$DisplayFavorite = "Yes"
+		GUICtrlSetState($MovieFavoriteYesRadio, $GUI_CHECKED)
+	Else
+		$DisplayFavorite = "No"
+		$EditMovieFavorite = "0"
+		GUICtrlSetState($MovieFavoriteNoRadio, $GUI_CHECKED)
 	EndIf
 
-	If $Stop = 0 Then
-		While $CheckPicture = ""
-			$CheckPicture = InputBox("Movie Picture", "Does this movie have a picture attatched to it? Please put a 0 if it does not and a 1 if it does!")
-			If $CheckPicture = "" Then
-				MsgBox(48, "Cancelled", "You have not input an answer, cancelling addition of movie!")
-				$CheckPicture = "Cancel Movie RS"
-				$Stop = 1
-			EndIf
+	GUICtrlCreateLabel("Movie Description", 120, 330, 200)
+	GUICtrlSetFont(-1, 16)
+	GUICtrlSetColor(-1, 0xFFFFFF)
+	$CurrentMovieDescriptionDisplay = GUICtrlCreateEdit("", 10, 360, 380, 100, $ES_Center)
+	GUICtrlSetFont(-1, 12)
+	GUICtrlSetColor(-1, 0x00CCFF)
+	GUICtrlSetColor($CurrentMovieDescriptionDisplay, 0xfb0000)
 
-			If $Stop = 0 Then
-				$CheckMovieAddition = MsgBox(4, "Movie Movie", "Are you sure of your answer?" & @CRLF & @CRLF & $CheckPicture)
+	$AddMovieFinishedButton = GUICtrlCreateButton("Add Movie", 10, 470, 180, 50)
+	GUICtrlSetOnEvent(-1, "_AddMovieFinished")
+	GUICtrlSetFont(-1, 16)
 
-				If $CheckMovieAddition = 6 Then
-					Sleep(10)
-				Else
-					$CheckPicture = ""
-				EndIf
-			EndIf
-		WEnd
+	$CloseButton = GUICtrlCreateButton("Cancel", 210, 470, 180, 50)
+	GUICtrlSetOnEvent(-1, "_CancelAddMovie")
+	GUICtrlSetFont(-1, 16)
+	GUISetState()
+EndFunc   ;==>_AddMovie
+
+Func _CancelAddMovie()
+	MsgBox(48, "Cancel", "Addition of movie has been cancelled!")
+	$Stop = 0
+	$InputMovieDescription = 0
+	$InputMovieGenre = 0
+	$InputMovieTitle = 0
+	$CheckMovieAddition = 0
+	$CheckPicture = 0
+	$CheckFavorite = 0
+	GUISetState(@SW_ENABLE, $MainGui)
+	$CurrentGui = "Main"
+	GUIDelete($MovieDataGui)
+EndFunc   ;==>_CancelAddMovie
+
+Func _AddMovieFinished()
+	$InputMovieGenre = GUICtrlRead($CurrentMovieGenreDisplay)
+	$InputMovieDescription = GUICtrlRead($CurrentMovieDescriptionDisplay)
+	$InputMovieTitle = GUICtrlRead($CurrentMovieTitleDisplay)
+	If $InputMovieGenre = "" Then
+		$Stop = 1
+		MsgBox(48, "Error", "You must input a genre to continue!")
 	EndIf
-
-	If $Stop = 0 Then
-		While $CheckFavorite = ""
-			$CheckFavorite = InputBox("Movie Favorited", "Do you want this movie listed as a favorite? Please put a 0 if you do not and a 1 if you do!")
-			If $CheckFavorite = "" Then
-				MsgBox(48, "Cancelled", "You have not input an answer, cancelling addition of movie!")
-				$CheckFavorite = "Cancel Movie RS"
-				$Stop = 1
-			EndIf
-
-			If $Stop = 0 Then
-				$CheckMovieAddition = MsgBox(4, "Movie Movie", "Are you sure of your answer?" & @CRLF & @CRLF & $CheckFavorite)
-
-				If $CheckMovieAddition = 6 Then
-					Sleep(10)
-				Else
-					$CheckFavorite = ""
-				EndIf
-			EndIf
-		WEnd
+	If $InputMovieDescription = "" Then
+		$Stop = 1
+		MsgBox(48, "Error", "You must input a movie description to continue!")
 	EndIf
-
+	If $InputMovieTitle = "" Then
+		$Stop = 1
+		MsgBox(48, "Error", "You must input a movie title to continue!")
+	EndIf
 	If $Stop = 0 Then
 		$GetTitleLength = StringLen($InputMovieTitle)
 		$TrimTitleForAZList = StringTrimRight($InputMovieTitle, $GetTitleLength - 1)
+
 		If StringIsDigit($TrimTitleForAZList) Then
 			IniWrite(@ScriptDir & "/Data/# List/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Genre", $InputMovieGenre)
 			IniWrite(@ScriptDir & "/Data/# List/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Description", $InputMovieDescription)
-			IniWrite(@ScriptDir & "/Data/# List/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Picture", $CheckPicture)
-			IniWrite(@ScriptDir & "/Data/# List/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Favorite", $CheckFavorite)
+			IniWrite(@ScriptDir & "/Data/# List/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Picture", $EditMoviePicture)
+			IniWrite(@ScriptDir & "/Data/# List/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Favorite", $EditMovieFavorite)
 		Else
 			$CheckIfDirExists = DirGetSize(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList)
 			If @error Then
 				DirCreate(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList)
 				IniWrite(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList & "/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Genre", $InputMovieGenre)
 				IniWrite(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList & "/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Description", $InputMovieDescription)
-				IniWrite(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList & "/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Picture", $CheckPicture)
-				IniWrite(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList & "/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Favorite", $CheckFavorite)
+				IniWrite(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList & "/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Picture", $EditMoviePicture)
+				IniWrite(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList & "/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Favorite", $EditMovieFavorite)
 			Else
 				IniWrite(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList & "/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Genre", $InputMovieGenre)
 				IniWrite(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList & "/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Description", $InputMovieDescription)
-				IniWrite(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList & "/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Picture", $CheckPicture)
-				IniWrite(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList & "/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Favorite", $CheckFavorite)
+				IniWrite(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList & "/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Picture", $EditMoviePicture)
+				IniWrite(@ScriptDir & "/Data/AZList/" & $TrimTitleForAZList & "/" & $InputMovieTitle & ".ini", $InputMovieTitle, "Favorite", $EditMovieFavorite)
 			EndIf
 		EndIf
 
-		If $CheckFavorite = 1 Then
+		If $EditMovieFavorite = 1 Then
 			If StringIsDigit($TrimTitleForAZList) Then
 				FileCopy(@ScriptDir & "/Data/# List/" & $InputMovieTitle & ".ini", @ScriptDir & "/Data/Favorites/" & $InputMovieTitle & ".ini", 1)
 			Else
@@ -406,19 +465,20 @@ Func _AddMovie()
 
 
 		EndIf
-
-
+		MsgBox(0, "Movie Added", "Movie " & $InputMovieTitle & " has been added!")
+		$Stop = 0
+		$InputMovieDescription = 0
+		$InputMovieGenre = 0
+		$InputMovieTitle = 0
+		$CheckMovieAddition = 0
+		$CheckPicture = 0
+		$EditMovieFavorite = 0
+		GUISetState(@SW_ENABLE, $MainGui)
+		GUIDelete($MovieDataGui)
 	EndIf
 
 
-	$Stop = 0
-	$InputMovieDescription = 0
-	$InputMovieGenre = 0
-	$InputMovieTitle = 0
-	$CheckMovieAddition = 0
-	$CheckPicture = 0
-	$CheckFavorite = 0
-EndFunc   ;==>_AddMovie
+EndFunc   ;==>_AddMovieFinished
 
 Func _RemoveMovie()
 	$InputMovieToRemove = InputBox("Remove Movie", "Please input the name of the movie you wish to remove.")
@@ -513,6 +573,7 @@ Func _UpdateDatabase()
 			Next
 		EndIf
 	EndIf
+	_WinAPI_RedrawWindow(GUICtrlGetHandle($AZTreeView))
 
 EndFunc   ;==>_UpdateDatabase
 
